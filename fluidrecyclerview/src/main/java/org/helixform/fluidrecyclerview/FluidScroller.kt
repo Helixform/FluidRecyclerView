@@ -4,7 +4,7 @@ import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
 
-class FluidScroller {
+class FluidScroller(private val decelerateRate: Float = DECELERATION_RATE_NORMAL) {
     companion object {
         const val DECELERATION_RATE_NORMAL = 0.998f
         const val DECELERATION_RATE_FAST = 0.99f
@@ -16,16 +16,13 @@ class FluidScroller {
         val isFinished: Boolean
     )
 
-    var decelerateRate: Float
+    private var startValue: Float = 0f
     private var initialVelocity: Float = 0f
 
     private val threshold = 1e-2f
 
-    constructor(decelerateRate: Float = DECELERATION_RATE_NORMAL) {
-        this.decelerateRate = decelerateRate
-    }
-
-    fun fling(velocity: Float) {
+    fun fling(startValue: Float, velocity: Float) {
+        this.startValue = startValue
         initialVelocity = velocity
     }
 
@@ -49,6 +46,6 @@ class FluidScroller {
     }
 
     private fun offsetAt(time: Float): Float {
-        return initialVelocity * (1f / ln(decelerateRate)) * (decelerateRate.pow(time) - 1f)
+        return startValue + initialVelocity * (1f / ln(decelerateRate)) * (decelerateRate.pow(time) - 1f)
     }
 }
