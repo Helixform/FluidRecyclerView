@@ -59,7 +59,6 @@ import android.view.accessibility.AccessibilityManager;
 import android.view.animation.Interpolator;
 import android.widget.EdgeEffect;
 import android.widget.LinearLayout;
-import android.widget.OverScroller;
 
 import androidx.annotation.CallSuper;
 import androidx.annotation.IntDef;
@@ -88,6 +87,7 @@ import androidx.customview.view.AbsSavedState;
 import androidx.recyclerview.R;
 import androidx.recyclerview.widget.RecyclerView.ItemAnimator.ItemHolderInfo;
 
+import org.helixform.fluidrecyclerview.OverScrollerAdapter;
 import org.helixform.fluidrecyclerview.VelocityTracker;
 import org.helixform.fluidrecyclerview.VelocityTrackerFactory;
 
@@ -4522,7 +4522,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
 
     final void fillRemainingScrollValues(State state) {
         if (getScrollState() == SCROLL_STATE_SETTLING) {
-            final OverScroller scroller = mViewFlinger.mOverScroller;
+            final OverScrollerAdapter scroller = mViewFlinger.mOverScroller;
             state.mRemainingScrollHorizontal = scroller.getFinalX() - scroller.getCurrX();
             state.mRemainingScrollVertical = scroller.getFinalY() - scroller.getCurrY();
         } else {
@@ -5766,7 +5766,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
     class ViewFlinger implements Runnable {
         private int mLastFlingX;
         private int mLastFlingY;
-        OverScroller mOverScroller;
+        OverScrollerAdapter mOverScroller;
         Interpolator mInterpolator = sQuinticInterpolator;
 
         // When set to true, postOnAnimation callbacks are delayed until the run method completes
@@ -5776,7 +5776,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
         private boolean mReSchedulePostAnimationCallback = false;
 
         ViewFlinger() {
-            mOverScroller = new OverScroller(getContext(), sQuinticInterpolator);
+            mOverScroller = new OverScrollerAdapter(getContext(), sQuinticInterpolator);
         }
 
         @Override
@@ -5801,7 +5801,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
 
             // Keep a local reference so that if it is changed during onAnimation method, it won't
             // cause unexpected behaviors
-            final OverScroller scroller = mOverScroller;
+            final OverScrollerAdapter scroller = mOverScroller;
             if (scroller.computeScrollOffset()) {
                 final int x = scroller.getCurrX();
                 final int y = scroller.getCurrY();
@@ -5956,7 +5956,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
             // changed our interpolator.
             if (mInterpolator != sQuinticInterpolator) {
                 mInterpolator = sQuinticInterpolator;
-                mOverScroller = new OverScroller(getContext(), sQuinticInterpolator);
+                mOverScroller = new OverScrollerAdapter(getContext(), sQuinticInterpolator);
             }
             mOverScroller.fling(0, 0, velocityX, velocityY,
                     Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE);
@@ -5990,7 +5990,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
             // interpolator.
             if (mInterpolator != interpolator) {
                 mInterpolator = interpolator;
-                mOverScroller = new OverScroller(getContext(), interpolator);
+                mOverScroller = new OverScrollerAdapter(getContext(), interpolator);
             }
 
             // Reset the last fling information.
