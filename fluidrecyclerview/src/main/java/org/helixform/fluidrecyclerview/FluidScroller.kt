@@ -35,6 +35,11 @@ class FluidScroller {
     }
 
     fun finalOffset(): Float {
+        // A scroll won't happen when the velocity is below the threshold.
+        // Meanwhile, Avoiding division by zero.
+        if (abs(initialVelocity) < threshold) {
+            return 0f
+        }
         val t = ln(threshold / abs(initialVelocity)) / ln(decelerateRate)
         return offsetAt(t)
     }
