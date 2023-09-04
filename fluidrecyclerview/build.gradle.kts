@@ -21,7 +21,7 @@ plugins {
 
 android {
     namespace = "androidx.recyclerview"
-    compileSdk = 33
+    compileSdk = 32
 
     defaultConfig {
         minSdk = 14
