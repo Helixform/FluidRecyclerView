@@ -1,5 +1,6 @@
 /*
  * Copyright 2018 The Android Open Source Project
+ * Copyright (C) 2023 Helixform
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +50,6 @@ import android.view.Display;
 import android.view.FocusFinder;
 import android.view.InputDevice;
 import android.view.MotionEvent;
-import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
@@ -87,6 +87,9 @@ import androidx.customview.poolingcontainer.PoolingContainerListener;
 import androidx.customview.view.AbsSavedState;
 import androidx.recyclerview.R;
 import androidx.recyclerview.widget.RecyclerView.ItemAnimator.ItemHolderInfo;
+
+import org.helixform.fluidrecyclerview.VelocityTracker;
+import org.helixform.fluidrecyclerview.VelocityTrackerFactory;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -3612,7 +3615,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
         final boolean canScrollVertically = mLayout.canScrollVertically();
 
         if (mVelocityTracker == null) {
-            mVelocityTracker = VelocityTracker.obtain();
+            mVelocityTracker = VelocityTrackerFactory.create();
         }
         mVelocityTracker.addMovement(e);
 
@@ -3764,7 +3767,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
         final boolean canScrollVertically = mLayout.canScrollVertically();
 
         if (mVelocityTracker == null) {
-            mVelocityTracker = VelocityTracker.obtain();
+            mVelocityTracker = VelocityTrackerFactory.create();
         }
         boolean eventAddedToVelocityTracker = false;
 
