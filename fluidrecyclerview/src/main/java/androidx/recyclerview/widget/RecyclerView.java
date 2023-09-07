@@ -68,7 +68,6 @@ import androidx.annotation.Px;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.os.TraceCompat;
-import androidx.core.util.Preconditions;
 import androidx.core.view.AccessibilityDelegateCompat;
 import androidx.core.view.InputDeviceCompat;
 import androidx.core.view.MotionEventCompat;
@@ -80,13 +79,13 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.ViewConfigurationCompat;
 import androidx.core.view.accessibility.AccessibilityEventCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
-import androidx.core.widget.EdgeEffectCompat;
 import androidx.customview.poolingcontainer.PoolingContainer;
 import androidx.customview.poolingcontainer.PoolingContainerListener;
 import androidx.customview.view.AbsSavedState;
 import androidx.recyclerview.R;
 import androidx.recyclerview.widget.RecyclerView.ItemAnimator.ItemHolderInfo;
 
+import org.helixform.fluidrecyclerview.EdgeEffectAdapter;
 import org.helixform.fluidrecyclerview.OverScrollerAdapter;
 import org.helixform.fluidrecyclerview.VelocityTracker;
 import org.helixform.fluidrecyclerview.VelocityTrackerFactory;
@@ -559,9 +558,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      */
     private int mDispatchScrollCounter = 0;
 
-    @NonNull
-    private EdgeEffectFactory mEdgeEffectFactory = sDefaultEdgeEffectFactory;
-    private EdgeEffect mLeftGlow, mTopGlow, mRightGlow, mBottomGlow;
+    private EdgeEffectAdapter mHorizontalEdgeEffect, mVerticalEdgeEffect;
 
     ItemAnimator mItemAnimator = new DefaultItemAnimator();
 
@@ -667,9 +664,6 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
             return t * t * t * t * t + 1.0f;
         }
     };
-
-    static final StretchEdgeEffectFactory sDefaultEdgeEffectFactory =
-            new StretchEdgeEffectFactory();
 
     // These fields are only used to track whether we need to layout and measure RV children in
     // onLayout.
@@ -2177,7 +2171,6 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
             if (ev != null && !MotionEventCompat.isFromSource(ev, InputDevice.SOURCE_MOUSE)) {
                 pullGlows(ev.getX(), unconsumedX, ev.getY(), unconsumedY);
             }
-            considerReleasingGlowsOnScroll(x, y);
         }
         if (consumedX != 0 || consumedY != 0) {
             dispatchOnScrolled(consumedX, consumedY);
@@ -2199,33 +2192,13 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      * edge glow.
      */
     private int releaseHorizontalGlow(int deltaX, float y) {
-        // First allow releasing existing overscroll effect:
-        float consumed = 0;
-        float displacement = y / getHeight();
-        float pullDistance = (float) deltaX / getWidth();
-        if (mLeftGlow != null && EdgeEffectCompat.getDistance(mLeftGlow) != 0) {
-            if (canScrollHorizontally(-1)) {
-                mLeftGlow.onRelease();
-            } else {
-                consumed = -EdgeEffectCompat.onPullDistance(mLeftGlow, -pullDistance,
-                        1 - displacement);
-                if (EdgeEffectCompat.getDistance(mLeftGlow) == 0) {
-                    mLeftGlow.onRelease();
-                }
-            }
+        if (mHorizontalEdgeEffect != null && mHorizontalEdgeEffect.getDistance() != 0) {
+            int consumed = (int) mHorizontalEdgeEffect.onPullDistance(deltaX);
             invalidate();
-        } else if (mRightGlow != null && EdgeEffectCompat.getDistance(mRightGlow) != 0) {
-            if (canScrollHorizontally(1)) {
-                mRightGlow.onRelease();
-            } else {
-                consumed = EdgeEffectCompat.onPullDistance(mRightGlow, pullDistance, displacement);
-                if (EdgeEffectCompat.getDistance(mRightGlow) == 0) {
-                    mRightGlow.onRelease();
-                }
-            }
-            invalidate();
+            return consumed;
         }
-        return Math.round(consumed * getWidth());
+
+        return 0;
     }
 
     /**
@@ -2239,33 +2212,13 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      * edge glow.
      */
     private int releaseVerticalGlow(int deltaY, float x) {
-        // First allow releasing existing overscroll effect:
-        float consumed = 0;
-        float displacement = x / getWidth();
-        float pullDistance = (float) deltaY / getHeight();
-        if (mTopGlow != null && EdgeEffectCompat.getDistance(mTopGlow) != 0) {
-            if (canScrollVertically(-1)) {
-                mTopGlow.onRelease();
-            } else {
-                consumed = -EdgeEffectCompat.onPullDistance(mTopGlow, -pullDistance, displacement);
-                if (EdgeEffectCompat.getDistance(mTopGlow) == 0) {
-                    mTopGlow.onRelease();
-                }
-            }
+        if (mVerticalEdgeEffect != null && mVerticalEdgeEffect.getDistance() != 0) {
+            int consumed = (int) mVerticalEdgeEffect.onPullDistance(deltaY);
             invalidate();
-        } else if (mBottomGlow != null && EdgeEffectCompat.getDistance(mBottomGlow) != 0) {
-            if (canScrollVertically(1)) {
-                mBottomGlow.onRelease();
-            } else {
-                consumed = EdgeEffectCompat.onPullDistance(mBottomGlow, pullDistance,
-                        1 - displacement);
-                if (EdgeEffectCompat.getDistance(mBottomGlow) == 0) {
-                    mBottomGlow.onRelease();
-                }
-            }
-            invalidate();
+            return consumed;
         }
-        return Math.round(consumed * getHeight());
+
+        return 0;
     }
 
     /**
@@ -2757,16 +2710,9 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
         int flingX = 0;
         int flingY = 0;
         if (velocityX != 0) {
-            if (mLeftGlow != null && EdgeEffectCompat.getDistance(mLeftGlow) != 0) {
-                if (shouldAbsorb(mLeftGlow, -velocityX, getWidth())) {
-                    mLeftGlow.onAbsorb(-velocityX);
-                } else {
-                    flingX = velocityX;
-                }
-                velocityX = 0;
-            } else if (mRightGlow != null && EdgeEffectCompat.getDistance(mRightGlow) != 0) {
-                if (shouldAbsorb(mRightGlow, velocityX, getWidth())) {
-                    mRightGlow.onAbsorb(velocityX);
+            if (mHorizontalEdgeEffect != null && mHorizontalEdgeEffect.getDistance() != 0) {
+                if (shouldAbsorb(mHorizontalEdgeEffect, velocityX)) {
+                    mHorizontalEdgeEffect.onAbsorb(velocityX);
                 } else {
                     flingX = velocityX;
                 }
@@ -2774,16 +2720,9 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
             }
         }
         if (velocityY != 0) {
-            if (mTopGlow != null && EdgeEffectCompat.getDistance(mTopGlow) != 0) {
-                if (shouldAbsorb(mTopGlow, -velocityY, getHeight())) {
-                    mTopGlow.onAbsorb(-velocityY);
-                } else {
-                    flingY = velocityY;
-                }
-                velocityY = 0;
-            } else if (mBottomGlow != null && EdgeEffectCompat.getDistance(mBottomGlow) != 0) {
-                if (shouldAbsorb(mBottomGlow, velocityY, getHeight())) {
-                    mBottomGlow.onAbsorb(velocityY);
+            if (mVerticalEdgeEffect != null && mVerticalEdgeEffect.getDistance() != 0) {
+                if (shouldAbsorb(mVerticalEdgeEffect, velocityY)) {
+                    mVerticalEdgeEffect.onAbsorb(-velocityY);
                 } else {
                     flingY = velocityY;
                 }
@@ -2827,26 +2766,17 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
     }
 
     /**
-     * Returns true if edgeEffect should call onAbsorb() with veclocity or false if it should
+     * Returns true if edgeEffect should call onAbsorb() with velocity or false if it should
      * animate with a fling. It will animate with a fling if the velocity will remove the
      * EdgeEffect through its normal operation.
      *
      * @param edgeEffect The EdgeEffect that might absorb the velocity.
      * @param velocity The velocity of the fling motion
-     * @param size The width or height of the RecyclerView, depending on the edge that the
-     *             EdgeEffect is on.
      * @return true if the velocity should be absorbed or false if it should be flung.
      */
-    private boolean shouldAbsorb(@NonNull EdgeEffect edgeEffect, int velocity, int size) {
-        if (velocity > 0) {
-            return true;
-        }
-        float distance = EdgeEffectCompat.getDistance(edgeEffect) * size;
-
-        // This is flinging without the spring, so let's see if it will fling past the overscroll
-        float flingDistance = getSplineFlingDistance(-velocity);
-
-        return flingDistance < distance;
+    private boolean shouldAbsorb(@NonNull EdgeEffectAdapter edgeEffect, int velocity) {
+        // TODO: implement this.
+        return false;
     }
 
     /**
@@ -2858,7 +2788,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      * @return The remaining unconsumed delta after the edge effects have consumed.
      */
     int consumeFlingInHorizontalStretch(int unconsumedX) {
-        return consumeFlingInStretch(unconsumedX, mLeftGlow, mRightGlow, getWidth());
+        return consumeFlingInStretch(unconsumedX, mHorizontalEdgeEffect);
     }
 
     /**
@@ -2870,43 +2800,25 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      * @return The remaining unconsumed delta after the edge effects have consumed.
      */
     int consumeFlingInVerticalStretch(int unconsumedY) {
-        return consumeFlingInStretch(unconsumedY, mTopGlow, mBottomGlow, getHeight());
+        return consumeFlingInStretch(unconsumedY, mVerticalEdgeEffect);
     }
 
     /**
      * Used by consumeFlingInHorizontalStretch() and consumeFlinInVerticalStretch() for
      * consuming deltas from EdgeEffects
-     * @param unconsumed The unconsumed delta that the EdgeEffets may consume
-     * @param startGlow The start (top or left) EdgeEffect
-     * @param endGlow The end (bottom or right) EdgeEffect
-     * @param size The width or height of the container, depending on whether this is for
-     *             horizontal or vertical EdgeEffects
+     * @param unconsumed The unconsumed delta that the EdgeEffects may consume
+     * @param edgeEffect The EdgeEffect to update
      * @return The unconsumed delta after the EdgeEffects have had an opportunity to consume.
      */
     private int consumeFlingInStretch(
             int unconsumed,
-            EdgeEffect startGlow,
-            EdgeEffect endGlow,
-            int size
+            EdgeEffectAdapter edgeEffect
     ) {
-        if (unconsumed > 0 && startGlow != null && EdgeEffectCompat.getDistance(startGlow) != 0f) {
-            float deltaDistance = -unconsumed * FLING_DESTRETCH_FACTOR / size;
-            int consumed = Math.round(-size / FLING_DESTRETCH_FACTOR
-                    * EdgeEffectCompat.onPullDistance(startGlow, deltaDistance, 0.5f));
-            if (consumed != unconsumed) {
-                startGlow.finish();
-            }
-            return unconsumed - consumed;
+        if (unconsumed != 0 && edgeEffect != null && edgeEffect.getDistance() != 0f) {
+            int consumed = (int) edgeEffect.onPullDistance(unconsumed);
+            return unconsumed > 0 ? (unconsumed - consumed) : (unconsumed + consumed);
         }
-        if (unconsumed < 0 && endGlow != null && EdgeEffectCompat.getDistance(endGlow) != 0f) {
-            float deltaDistance = unconsumed * FLING_DESTRETCH_FACTOR / size;
-            int consumed = Math.round(size / FLING_DESTRETCH_FACTOR
-                    * EdgeEffectCompat.onPullDistance(endGlow, deltaDistance, 0.5f));
-            if (consumed != unconsumed) {
-                endGlow.finish();
-            }
-            return unconsumed - consumed;
-        }
+
         return unconsumed;
     }
 
@@ -2953,25 +2865,15 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      */
     private void pullGlows(float x, float overscrollX, float y, float overscrollY) {
         boolean invalidate = false;
-        if (overscrollX < 0) {
-            ensureLeftGlow();
-            EdgeEffectCompat.onPullDistance(mLeftGlow, -overscrollX / getWidth(),
-                    1f - y / getHeight());
-            invalidate = true;
-        } else if (overscrollX > 0) {
-            ensureRightGlow();
-            EdgeEffectCompat.onPullDistance(mRightGlow, overscrollX / getWidth(), y / getHeight());
+        if (overscrollX != 0) {
+            ensureHorizontalGlow();
+            mHorizontalEdgeEffect.onPullDistance(overscrollX);
             invalidate = true;
         }
 
-        if (overscrollY < 0) {
-            ensureTopGlow();
-            EdgeEffectCompat.onPullDistance(mTopGlow, -overscrollY / getHeight(), x / getWidth());
-            invalidate = true;
-        } else if (overscrollY > 0) {
-            ensureBottomGlow();
-            EdgeEffectCompat.onPullDistance(mBottomGlow, overscrollY / getHeight(),
-                    1f - x / getWidth());
+        if (overscrollY != 0) {
+            ensureVerticalGlow();
+            mVerticalEdgeEffect.onPullDistance(overscrollY);
             invalidate = true;
         }
 
@@ -2982,44 +2884,13 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
 
     private void releaseGlows() {
         boolean needsInvalidate = false;
-        if (mLeftGlow != null) {
-            mLeftGlow.onRelease();
-            needsInvalidate = mLeftGlow.isFinished();
+        if (mHorizontalEdgeEffect != null) {
+            mHorizontalEdgeEffect.onRelease();
+            needsInvalidate = mHorizontalEdgeEffect.isFinished();
         }
-        if (mTopGlow != null) {
-            mTopGlow.onRelease();
-            needsInvalidate |= mTopGlow.isFinished();
-        }
-        if (mRightGlow != null) {
-            mRightGlow.onRelease();
-            needsInvalidate |= mRightGlow.isFinished();
-        }
-        if (mBottomGlow != null) {
-            mBottomGlow.onRelease();
-            needsInvalidate |= mBottomGlow.isFinished();
-        }
-        if (needsInvalidate) {
-            ViewCompat.postInvalidateOnAnimation(this);
-        }
-    }
-
-    void considerReleasingGlowsOnScroll(int dx, int dy) {
-        boolean needsInvalidate = false;
-        if (mLeftGlow != null && !mLeftGlow.isFinished() && dx > 0) {
-            mLeftGlow.onRelease();
-            needsInvalidate = mLeftGlow.isFinished();
-        }
-        if (mRightGlow != null && !mRightGlow.isFinished() && dx < 0) {
-            mRightGlow.onRelease();
-            needsInvalidate |= mRightGlow.isFinished();
-        }
-        if (mTopGlow != null && !mTopGlow.isFinished() && dy > 0) {
-            mTopGlow.onRelease();
-            needsInvalidate |= mTopGlow.isFinished();
-        }
-        if (mBottomGlow != null && !mBottomGlow.isFinished() && dy < 0) {
-            mBottomGlow.onRelease();
-            needsInvalidate |= mBottomGlow.isFinished();
+        if (mVerticalEdgeEffect != null) {
+            mVerticalEdgeEffect.onRelease();
+            needsInvalidate |= mVerticalEdgeEffect.isFinished();
         }
         if (needsInvalidate) {
             ViewCompat.postInvalidateOnAnimation(this);
@@ -3027,27 +2898,17 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
     }
 
     void absorbGlows(int velocityX, int velocityY) {
-        if (velocityX < 0) {
-            ensureLeftGlow();
-            if (mLeftGlow.isFinished()) {
-                mLeftGlow.onAbsorb(-velocityX);
-            }
-        } else if (velocityX > 0) {
-            ensureRightGlow();
-            if (mRightGlow.isFinished()) {
-                mRightGlow.onAbsorb(velocityX);
+        if (velocityX != 0) {
+            ensureHorizontalGlow();
+            if (mHorizontalEdgeEffect.isFinished()) {
+                mHorizontalEdgeEffect.onAbsorb(velocityX);
             }
         }
 
         if (velocityY < 0) {
-            ensureTopGlow();
-            if (mTopGlow.isFinished()) {
-                mTopGlow.onAbsorb(-velocityY);
-            }
-        } else if (velocityY > 0) {
-            ensureBottomGlow();
-            if (mBottomGlow.isFinished()) {
-                mBottomGlow.onAbsorb(velocityY);
+            ensureVerticalGlow();
+            if (mVerticalEdgeEffect.isFinished()) {
+                mVerticalEdgeEffect.onAbsorb(velocityY);
             }
         }
 
@@ -3056,61 +2917,22 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
         }
     }
 
-    void ensureLeftGlow() {
-        if (mLeftGlow != null) {
+    void ensureHorizontalGlow() {
+        if (mHorizontalEdgeEffect != null) {
             return;
         }
-        mLeftGlow = mEdgeEffectFactory.createEdgeEffect(this, EdgeEffectFactory.DIRECTION_LEFT);
-        if (mClipToPadding) {
-            mLeftGlow.setSize(getMeasuredHeight() - getPaddingTop() - getPaddingBottom(),
-                    getMeasuredWidth() - getPaddingLeft() - getPaddingRight());
-        } else {
-            mLeftGlow.setSize(getMeasuredHeight(), getMeasuredWidth());
-        }
+        mHorizontalEdgeEffect = new EdgeEffectAdapter();
     }
 
-    void ensureRightGlow() {
-        if (mRightGlow != null) {
+    void ensureVerticalGlow() {
+        if (mVerticalEdgeEffect != null) {
             return;
         }
-        mRightGlow = mEdgeEffectFactory.createEdgeEffect(this, EdgeEffectFactory.DIRECTION_RIGHT);
-        if (mClipToPadding) {
-            mRightGlow.setSize(getMeasuredHeight() - getPaddingTop() - getPaddingBottom(),
-                    getMeasuredWidth() - getPaddingLeft() - getPaddingRight());
-        } else {
-            mRightGlow.setSize(getMeasuredHeight(), getMeasuredWidth());
-        }
-    }
-
-    void ensureTopGlow() {
-        if (mTopGlow != null) {
-            return;
-        }
-        mTopGlow = mEdgeEffectFactory.createEdgeEffect(this, EdgeEffectFactory.DIRECTION_TOP);
-        if (mClipToPadding) {
-            mTopGlow.setSize(getMeasuredWidth() - getPaddingLeft() - getPaddingRight(),
-                    getMeasuredHeight() - getPaddingTop() - getPaddingBottom());
-        } else {
-            mTopGlow.setSize(getMeasuredWidth(), getMeasuredHeight());
-        }
-
-    }
-
-    void ensureBottomGlow() {
-        if (mBottomGlow != null) {
-            return;
-        }
-        mBottomGlow = mEdgeEffectFactory.createEdgeEffect(this, EdgeEffectFactory.DIRECTION_BOTTOM);
-        if (mClipToPadding) {
-            mBottomGlow.setSize(getMeasuredWidth() - getPaddingLeft() - getPaddingRight(),
-                    getMeasuredHeight() - getPaddingTop() - getPaddingBottom());
-        } else {
-            mBottomGlow.setSize(getMeasuredWidth(), getMeasuredHeight());
-        }
+        mVerticalEdgeEffect = new EdgeEffectAdapter();
     }
 
     void invalidateGlows() {
-        mLeftGlow = mRightGlow = mTopGlow = mBottomGlow = null;
+        mHorizontalEdgeEffect = mVerticalEdgeEffect = null;
     }
 
     /**
@@ -3123,9 +2945,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      * @param edgeEffectFactory The {@link EdgeEffectFactory} instance.
      */
     public void setEdgeEffectFactory(@NonNull EdgeEffectFactory edgeEffectFactory) {
-        Preconditions.checkNotNull(edgeEffectFactory);
-        mEdgeEffectFactory = edgeEffectFactory;
-        invalidateGlows();
+        // No-op.
     }
 
     /**
@@ -3137,7 +2957,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      */
     @NonNull
     public EdgeEffectFactory getEdgeEffectFactory() {
-        return mEdgeEffectFactory;
+        return null;
     }
 
     /**
@@ -3716,24 +3536,11 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      */
     private boolean stopGlowAnimations(MotionEvent e) {
         boolean stopped = false;
-        if (mLeftGlow != null && EdgeEffectCompat.getDistance(mLeftGlow) != 0
-                && !canScrollHorizontally(-1)) {
-            EdgeEffectCompat.onPullDistance(mLeftGlow, 0, 1 - (e.getY() / getHeight()));
+        // TODO: actually stop here.
+        if (mHorizontalEdgeEffect != null && mHorizontalEdgeEffect.getDistance() != 0) {
             stopped = true;
         }
-        if (mRightGlow != null && EdgeEffectCompat.getDistance(mRightGlow) != 0
-                && !canScrollHorizontally(1)) {
-            EdgeEffectCompat.onPullDistance(mRightGlow, 0, e.getY() / getHeight());
-            stopped = true;
-        }
-        if (mTopGlow != null && EdgeEffectCompat.getDistance(mTopGlow) != 0
-                && !canScrollVertically(-1)) {
-            EdgeEffectCompat.onPullDistance(mTopGlow, 0, e.getX() / getWidth());
-            stopped = true;
-        }
-        if (mBottomGlow != null && EdgeEffectCompat.getDistance(mBottomGlow) != 0
-                && !canScrollVertically(1)) {
-            EdgeEffectCompat.onPullDistance(mBottomGlow, 0, 1 - e.getX() / getWidth());
+        if (mVerticalEdgeEffect != null && mVerticalEdgeEffect.getDistance() != 0) {
             stopped = true;
         }
         return stopped;
@@ -4946,48 +4753,17 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
     public void draw(Canvas c) {
         super.draw(c);
 
+        boolean needsInvalidate = false;
+        if (mHorizontalEdgeEffect != null && !mHorizontalEdgeEffect.isFinished()) {
+            needsInvalidate = true;
+        }
+        if (mVerticalEdgeEffect != null && !mVerticalEdgeEffect.isFinished()) {
+            needsInvalidate = true;
+        }
+
         final int count = mItemDecorations.size();
         for (int i = 0; i < count; i++) {
             mItemDecorations.get(i).onDrawOver(c, this, mState);
-        }
-        // TODO If padding is not 0 and clipChildrenToPadding is false, to draw glows properly, we
-        // need find children closest to edges. Not sure if it is worth the effort.
-        boolean needsInvalidate = false;
-        if (mLeftGlow != null && !mLeftGlow.isFinished()) {
-            final int restore = c.save();
-            final int padding = mClipToPadding ? getPaddingBottom() : 0;
-            c.rotate(270);
-            c.translate(-getHeight() + padding, 0);
-            needsInvalidate = mLeftGlow != null && mLeftGlow.draw(c);
-            c.restoreToCount(restore);
-        }
-        if (mTopGlow != null && !mTopGlow.isFinished()) {
-            final int restore = c.save();
-            if (mClipToPadding) {
-                c.translate(getPaddingLeft(), getPaddingTop());
-            }
-            needsInvalidate |= mTopGlow != null && mTopGlow.draw(c);
-            c.restoreToCount(restore);
-        }
-        if (mRightGlow != null && !mRightGlow.isFinished()) {
-            final int restore = c.save();
-            final int width = getWidth();
-            final int padding = mClipToPadding ? getPaddingTop() : 0;
-            c.rotate(90);
-            c.translate(padding, -width);
-            needsInvalidate |= mRightGlow != null && mRightGlow.draw(c);
-            c.restoreToCount(restore);
-        }
-        if (mBottomGlow != null && !mBottomGlow.isFinished()) {
-            final int restore = c.save();
-            c.rotate(180);
-            if (mClipToPadding) {
-                c.translate(-getWidth() + getPaddingRight(), -getHeight() + getPaddingBottom());
-            } else {
-                c.translate(-getWidth(), -getHeight());
-            }
-            needsInvalidate |= mBottomGlow != null && mBottomGlow.draw(c);
-            c.restoreToCount(restore);
         }
 
         // If some views are animating, ItemDecorators are likely to move/change with them.
@@ -5825,12 +5601,6 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
                     unconsumedY -= mReusableIntPair[1];
                 }
 
-                // Based on movement, we may want to trigger the hiding of existing over scroll
-                // glows.
-                if (getOverScrollMode() != View.OVER_SCROLL_NEVER) {
-                    considerReleasingGlowsOnScroll(unconsumedX, unconsumedY);
-                }
-
                 // Local Scroll
                 if (mAdapter != null) {
                     mReusableIntPair[0] = 0;
@@ -6163,17 +5933,6 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
         protected @NonNull
                 EdgeEffect createEdgeEffect(@NonNull RecyclerView view,
                         @EdgeDirection int direction) {
-            return new EdgeEffect(view.getContext());
-        }
-    }
-
-    /**
-     * The default EdgeEffectFactory sets the edge effect type of the EdgeEffect.
-     */
-    static class StretchEdgeEffectFactory extends EdgeEffectFactory {
-        @NonNull
-        @Override
-        protected EdgeEffect createEdgeEffect(@NonNull RecyclerView view, int direction) {
             return new EdgeEffect(view.getContext());
         }
     }
