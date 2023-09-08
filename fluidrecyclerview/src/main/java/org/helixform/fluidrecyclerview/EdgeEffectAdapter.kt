@@ -16,18 +16,33 @@
 
 package org.helixform.fluidrecyclerview
 
+import android.content.Context
+import android.util.TypedValue
+import android.view.animation.AnimationUtils
+import kotlin.math.roundToInt
+
 /**
  * A class that provides the required methods from {@link android.widget.EdgeEffect}
  * class, of which some operations are replaced by the custom edge effect.
  */
-class EdgeEffectAdapter {
+class EdgeEffectAdapter(private val context: Context) {
+    private var animationStartTime: Long = -1L
+    private var animationElapsedTime: Long = -1L
+
+    private var springBack = FluidSpringBack()
+    private var currentDistance = 0f
+    var isFinished = true
+        private set
+
+    private val displayMetrics = context.resources.displayMetrics
+
     /**
      * Returns the pull distance needed to be released to remove the showing effect.
      *
      * @return The pull distance that must be released to remove the showing effect.
      */
     fun getDistance(): Float {
-        return 0f
+        return currentDistance
     }
 
     /**
@@ -37,7 +52,12 @@ class EdgeEffectAdapter {
      * @param velocity Velocity at impact in pixels per second.
      */
     fun onAbsorb(velocity: Int) {
+        val velocityPxPerMs = velocity / 1000f
+        val velocityDpPerMs = velocityPxPerMs / displayMetrics.density
 
+        animationStartTime = AnimationUtils.currentAnimationTimeMillis()
+        springBack.absorb(velocityDpPerMs, 0f)
+        isFinished = false
     }
 
     /**
@@ -58,7 +78,17 @@ class EdgeEffectAdapter {
 
     }
 
-    fun isFinished(): Boolean {
-        return true
+    fun computeScrollOffset(): Boolean {
+        if (animationStartTime == -1L) {
+            return false
+        }
+
+        animationElapsedTime = AnimationUtils.currentAnimationTimeMillis() - animationStartTime
+        val value = springBack.value(animationElapsedTime.toFloat())
+        currentDistance = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, value.value, displayMetrics)
+        isFinished = value.isFinished
+
+        return !isFinished
     }
 }

@@ -2905,7 +2905,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
             }
         }
 
-        if (velocityY < 0) {
+        if (velocityY != 0) {
             ensureVerticalGlow();
             if (mVerticalEdgeEffect.isFinished()) {
                 mVerticalEdgeEffect.onAbsorb(velocityY);
@@ -2921,14 +2921,14 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
         if (mHorizontalEdgeEffect != null) {
             return;
         }
-        mHorizontalEdgeEffect = new EdgeEffectAdapter();
+        mHorizontalEdgeEffect = new EdgeEffectAdapter(getContext());
     }
 
     void ensureVerticalGlow() {
         if (mVerticalEdgeEffect != null) {
             return;
         }
-        mVerticalEdgeEffect = new EdgeEffectAdapter();
+        mVerticalEdgeEffect = new EdgeEffectAdapter(getContext());
     }
 
     void invalidateGlows() {
@@ -4751,20 +4751,28 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
 
     @Override
     public void draw(Canvas c) {
-        super.draw(c);
+        c.save();
 
         boolean needsInvalidate = false;
         if (mHorizontalEdgeEffect != null && !mHorizontalEdgeEffect.isFinished()) {
+            mHorizontalEdgeEffect.computeScrollOffset();
+            c.translate(mHorizontalEdgeEffect.getDistance(), 0);
             needsInvalidate = true;
         }
         if (mVerticalEdgeEffect != null && !mVerticalEdgeEffect.isFinished()) {
+            mVerticalEdgeEffect.computeScrollOffset();
+            c.translate(0, mVerticalEdgeEffect.getDistance());
             needsInvalidate = true;
         }
+
+        super.draw(c);
 
         final int count = mItemDecorations.size();
         for (int i = 0; i < count; i++) {
             mItemDecorations.get(i).onDrawOver(c, this, mState);
         }
+
+        c.restore();
 
         // If some views are animating, ItemDecorators are likely to move/change with them.
         // Invalidate RecyclerView to re-draw decorators. This is still efficient because children's
@@ -5672,8 +5680,8 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
 
                     if (getOverScrollMode() != View.OVER_SCROLL_NEVER) {
                         final int vel = (int) scroller.getCurrVelocity();
-                        int velX = unconsumedX < 0 ? -vel : unconsumedX > 0 ? vel : 0;
-                        int velY = unconsumedY < 0 ? -vel : unconsumedY > 0 ? vel : 0;
+                        int velX = unconsumedX < 0 ? vel : unconsumedX > 0 ? -vel : 0;
+                        int velY = unconsumedY < 0 ? vel : unconsumedY > 0 ? -vel : 0;
                         absorbGlows(velX, velY);
                     }
 
