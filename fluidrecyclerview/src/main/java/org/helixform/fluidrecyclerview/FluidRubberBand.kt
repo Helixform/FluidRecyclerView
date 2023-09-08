@@ -14,7 +14,7 @@ class FluidRubberBand {
         }
 
         fun distance(offset: Float, range: Float): Float {
-            if (offset < 0f || range < 0f) {
+            if (offset < 0f || range <= 0f) {
                 return 0f
             }
             // The offset cannot be greater than or equal to the range.
