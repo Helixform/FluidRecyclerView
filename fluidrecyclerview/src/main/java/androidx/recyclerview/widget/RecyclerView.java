@@ -2193,7 +2193,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      */
     private int releaseHorizontalGlow(int deltaX, float y) {
         if (mHorizontalEdgeEffect != null && mHorizontalEdgeEffect.getDistance() != 0) {
-            int consumed = (int) mHorizontalEdgeEffect.onPullDistance(deltaX);
+            int consumed = (int) mHorizontalEdgeEffect.onPullDistance(deltaX, true);
             invalidate();
             return consumed;
         }
@@ -2213,7 +2213,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      */
     private int releaseVerticalGlow(int deltaY, float x) {
         if (mVerticalEdgeEffect != null && mVerticalEdgeEffect.getDistance() != 0) {
-            int consumed = (int) mVerticalEdgeEffect.onPullDistance(deltaY);
+            int consumed = (int) mVerticalEdgeEffect.onPullDistance(deltaY, true);
             invalidate();
             return consumed;
         }
@@ -2815,7 +2815,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
             EdgeEffectAdapter edgeEffect
     ) {
         if (unconsumed != 0 && edgeEffect != null && edgeEffect.getDistance() != 0f) {
-            int consumed = (int) edgeEffect.onPullDistance(unconsumed);
+            int consumed = (int) edgeEffect.onPullDistance(unconsumed, true);
             return unconsumed > 0 ? (unconsumed - consumed) : (unconsumed + consumed);
         }
 
@@ -2867,13 +2867,13 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
         boolean invalidate = false;
         if (overscrollX != 0) {
             ensureHorizontalGlow();
-            mHorizontalEdgeEffect.onPullDistance(overscrollX);
+            mHorizontalEdgeEffect.onPullDistance(overscrollX, false);
             invalidate = true;
         }
 
         if (overscrollY != 0) {
             ensureVerticalGlow();
-            mVerticalEdgeEffect.onPullDistance(overscrollY);
+            mVerticalEdgeEffect.onPullDistance(overscrollY, false);
             invalidate = true;
         }
 

@@ -26,11 +26,18 @@ import kotlin.math.roundToInt
  * class, of which some operations are replaced by the custom edge effect.
  */
 class EdgeEffectAdapter(private val context: Context) {
+    companion object {
+        private const val MODE_IDLE: Int = 0
+        private const val MODE_PULLING: Int = 1
+        private const val MODE_SPRING_BACK: Int = 2
+    }
+
     private var animationStartTime: Long = -1L
     private var animationElapsedTime: Long = -1L
 
     private var springBack = FluidSpringBack()
     private var currentDistance = 0f
+    private var mode: Int = MODE_IDLE
     var isFinished = true
         private set
 
@@ -57,6 +64,7 @@ class EdgeEffectAdapter(private val context: Context) {
 
         animationStartTime = AnimationUtils.currentAnimationTimeMillis()
         springBack.absorb(velocityDpPerMs, 0f)
+        mode = MODE_SPRING_BACK
         isFinished = false
     }
 
@@ -67,20 +75,39 @@ class EdgeEffectAdapter(private val context: Context) {
      * and draw the results accordingly.
      *
      * @param deltaDistance Change in distance since the last call.
+     * @param forReleasing Is releasing the edge effect.
      * @return The amount of <code>deltaDistance</code> that was consumed, a number between
      * 0 and <code>deltaDistance</code>.
      */
-    fun onPullDistance(deltaDistance: Float): Float {
+    fun onPullDistance(deltaDistance: Float, forReleasing: Boolean): Float {
+        if (forReleasing) {
+            return 0f
+        }
+
+        currentDistance -= deltaDistance
+        mode = MODE_PULLING
+        isFinished = false
         return 0f
     }
 
     fun onRelease() {
+        val initialValue = currentDistance / displayMetrics.density
 
+        animationStartTime = AnimationUtils.currentAnimationTimeMillis();
+        springBack.absorb(0f, initialValue)
+        mode = MODE_SPRING_BACK
+        isFinished = false
     }
 
     fun computeScrollOffset(): Boolean {
         if (animationStartTime == -1L) {
             return false
+        }
+
+        if (mode == MODE_PULLING) {
+            // The edge effect is in pulling mode, there is no need
+            // to update any animation state.
+            return true
         }
 
         animationElapsedTime = AnimationUtils.currentAnimationTimeMillis() - animationStartTime
