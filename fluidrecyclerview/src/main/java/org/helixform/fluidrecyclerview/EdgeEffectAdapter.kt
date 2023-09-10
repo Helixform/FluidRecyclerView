@@ -19,7 +19,8 @@ package org.helixform.fluidrecyclerview
 import android.content.Context
 import android.util.TypedValue
 import android.view.animation.AnimationUtils
-import kotlin.math.roundToInt
+import kotlin.math.abs
+import kotlin.math.sign
 
 /**
  * A class that provides the required methods from {@link android.widget.EdgeEffect}
@@ -32,11 +33,14 @@ class EdgeEffectAdapter(private val context: Context) {
         private const val MODE_SPRING_BACK: Int = 2
     }
 
+    private var viewportRange = 0f
+
     private var animationStartTime: Long = -1L
     private var animationElapsedTime: Long = -1L
 
     private var springBack = FluidSpringBack()
     private var currentDistance = 0f
+    private var totalPullDistance = 0f
     private var mode: Int = MODE_IDLE
     var isFinished = true
         private set
@@ -60,7 +64,7 @@ class EdgeEffectAdapter(private val context: Context) {
      */
     fun onAbsorb(velocity: Int) {
         val velocityPxPerMs = velocity / 1000f
-        val velocityDpPerMs = velocityPxPerMs / displayMetrics.density
+        val velocityDpPerMs = velocityPxPerMs.dp()
 
         animationStartTime = AnimationUtils.currentAnimationTimeMillis()
         springBack.absorb(velocityDpPerMs, 0f)
@@ -84,7 +88,13 @@ class EdgeEffectAdapter(private val context: Context) {
             return 0f
         }
 
-        currentDistance -= deltaDistance
+        val dpDelta = deltaDistance.dp()
+        if (mode != MODE_PULLING) {
+            totalPullDistance = 0f
+        }
+        totalPullDistance += dpDelta
+        val offset = FluidRubberBand.offset(abs(totalPullDistance), viewportRange)
+        currentDistance = (-offset * totalPullDistance.sign).px()
         mode = MODE_PULLING
         isFinished = false
         return 0f
@@ -112,10 +122,27 @@ class EdgeEffectAdapter(private val context: Context) {
 
         animationElapsedTime = AnimationUtils.currentAnimationTimeMillis() - animationStartTime
         val value = springBack.value(animationElapsedTime.toFloat())
-        currentDistance = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, value.value, displayMetrics)
+        currentDistance = value.value.px()
         isFinished = value.isFinished
 
+        if (isFinished) {
+            mode = MODE_IDLE
+        }
+
         return !isFinished
+    }
+
+    fun updateViewportRange(px: Int) {
+        viewportRange = px.toFloat().dp()
+    }
+
+    private fun Float.px(): Float {
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, this, displayMetrics
+        )
+    }
+
+    private fun Float.dp(): Float {
+        return this / displayMetrics.density
     }
 }

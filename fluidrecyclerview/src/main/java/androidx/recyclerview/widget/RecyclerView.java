@@ -2922,6 +2922,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
             return;
         }
         mHorizontalEdgeEffect = new EdgeEffectAdapter(getContext());
+        mHorizontalEdgeEffect.updateViewportRange(getWidth());
     }
 
     void ensureVerticalGlow() {
@@ -2929,6 +2930,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
             return;
         }
         mVerticalEdgeEffect = new EdgeEffectAdapter(getContext());
+        mVerticalEdgeEffect.updateViewportRange(getHeight());
     }
 
     void invalidateGlows() {
