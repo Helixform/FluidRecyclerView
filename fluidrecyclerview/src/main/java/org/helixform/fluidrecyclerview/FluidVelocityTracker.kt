@@ -14,11 +14,11 @@ class FluidVelocityTracker : VelocityTracker {
 
     override fun addMovement(event: MotionEvent) {
         if (positions.size >= MAX_SAMPLE_COUNT) {
-            positions.removeLast()
-            times.removeLast()
+            positions.removeFirst()
+            times.removeFirst()
         }
         times.add(event.eventTime)
-        positions.addFirst(PointF(event.x, event.y))
+        positions.add(PointF(event.x, event.y))
     }
 
     override fun clear() {
@@ -36,11 +36,15 @@ class FluidVelocityTracker : VelocityTracker {
         val transformedTimes = times.map { (it - firstTime).toFloat() }.toMutableList()
         val xValues = positions.map { it.x }.toTypedArray()
         val yValues = positions.map { it.y }.toTypedArray()
-        val xVelocity =
+        var xVelocity =
             calculateRecurrenceRelationVelocity(transformedTimes.toTypedArray(), xValues)
-        val yVelocity =
+        var yVelocity =
             calculateRecurrenceRelationVelocity(transformedTimes.toTypedArray(), yValues)
-        calculatedVelocity = PointF(xVelocity, yVelocity)
+        if (xVelocity * xVelocity + yVelocity * yVelocity < 0.0625) {
+            xVelocity = 0f
+            yVelocity = 0f
+        }
+        calculatedVelocity = PointF(xVelocity * units, yVelocity * units)
     }
 
     override fun getXVelocity(id: Int): Float {
