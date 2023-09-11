@@ -1,16 +1,20 @@
 package org.helixform.fluidrecyclerview
 
+import android.content.Context
 import android.graphics.PointF
 import android.view.MotionEvent
 import java.util.LinkedList
+import kotlin.math.pow
 
 private const val MAX_SAMPLE_COUNT = 4
 
-class FluidVelocityTracker : VelocityTracker {
+class FluidVelocityTracker(private val context: Context) : VelocityTracker {
     private var positions: LinkedList<PointF> = LinkedList()
     private var times: LinkedList<Long> = LinkedList()
 
     private var calculatedVelocity: PointF = PointF(0f, 0f)
+
+    private val displayMetrics = context.resources.displayMetrics
 
     override fun addMovement(event: MotionEvent) {
         if (positions.size >= MAX_SAMPLE_COUNT) {
@@ -40,7 +44,7 @@ class FluidVelocityTracker : VelocityTracker {
             calculateRecurrenceRelationVelocity(transformedTimes.toTypedArray(), xValues)
         var yVelocity =
             calculateRecurrenceRelationVelocity(transformedTimes.toTypedArray(), yValues)
-        if (xVelocity * xVelocity + yVelocity * yVelocity < 0.0625) {
+        if (xVelocity.pow(2) + yVelocity.pow(2) < 0.0625 * displayMetrics.density.pow(2)) {
             xVelocity = 0f
             yVelocity = 0f
         }

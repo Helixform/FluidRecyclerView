@@ -3437,7 +3437,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
         final boolean canScrollVertically = mLayout.canScrollVertically();
 
         if (mVelocityTracker == null) {
-            mVelocityTracker = VelocityTrackerFactory.create();
+            mVelocityTracker = VelocityTrackerFactory.create(getContext());
         }
         mVelocityTracker.addMovement(e);
 
@@ -3576,7 +3576,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
         final boolean canScrollVertically = mLayout.canScrollVertically();
 
         if (mVelocityTracker == null) {
-            mVelocityTracker = VelocityTrackerFactory.create();
+            mVelocityTracker = VelocityTrackerFactory.create(getContext());
         }
         boolean eventAddedToVelocityTracker = false;
 

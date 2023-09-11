@@ -16,6 +16,7 @@
 
 package org.helixform.fluidrecyclerview
 
+import android.content.Context
 import java.lang.RuntimeException
 
 /**
@@ -46,18 +47,18 @@ class VelocityTrackerFactory private constructor() {
          * @return The velocity tracker.
          */
         @JvmStatic
-        fun create(impl: Int): VelocityTracker {
+        fun create(context: Context, impl: Int): VelocityTracker {
             when (impl) {
                 VELOCITY_TRACKER_IMPL_SYSTEM -> return SystemVelocityTrackerAdapter()
-                VELOCITY_TRACKER_IMPL_OPTIMIZED -> return FluidVelocityTracker()
+                VELOCITY_TRACKER_IMPL_OPTIMIZED -> return FluidVelocityTracker(context)
             }
 
             throw RuntimeException("impl is not supported")
         }
 
         @JvmStatic
-        fun create(): VelocityTracker {
-            return create(VELOCITY_TRACKER_IMPL_OPTIMIZED)
+        fun create(context: Context): VelocityTracker {
+            return create(context, VELOCITY_TRACKER_IMPL_OPTIMIZED)
         }
     }
 }
