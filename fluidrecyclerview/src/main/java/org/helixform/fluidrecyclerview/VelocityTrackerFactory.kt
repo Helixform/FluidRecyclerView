@@ -49,6 +49,7 @@ class VelocityTrackerFactory private constructor() {
         fun create(impl: Int): VelocityTracker {
             when (impl) {
                 VELOCITY_TRACKER_IMPL_SYSTEM -> return SystemVelocityTrackerAdapter()
+                VELOCITY_TRACKER_IMPL_OPTIMIZED -> return FluidVelocityTracker()
             }
 
             throw RuntimeException("impl is not supported")
@@ -56,7 +57,7 @@ class VelocityTrackerFactory private constructor() {
 
         @JvmStatic
         fun create(): VelocityTracker {
-            return create(VELOCITY_TRACKER_IMPL_SYSTEM)
+            return create(VELOCITY_TRACKER_IMPL_OPTIMIZED)
         }
     }
 }
