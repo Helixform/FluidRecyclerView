@@ -8,7 +8,7 @@ private const val MAX_SAMPLE_COUNT = 4
 
 class FluidVelocityTracker : VelocityTracker {
     private var positions: LinkedList<PointF> = LinkedList()
-    private var times: LinkedList<Double> = LinkedList()
+    private var times: LinkedList<Long> = LinkedList()
 
     private var calculatedVelocity: PointF = PointF(0f, 0f)
 
@@ -17,12 +17,7 @@ class FluidVelocityTracker : VelocityTracker {
             positions.removeLast()
             times.removeLast()
         }
-
-        val clazz = MotionEvent::class.java
-        val getEventTimeNano = clazz.getMethod("getEventTimeNano")
-        val nanoTime = getEventTimeNano.invoke(event) as Double
-        // Convert nanoseconds to milliseconds.
-        times.addFirst(nanoTime / 1e6)
+        times.add(event.eventTime)
         positions.addFirst(PointF(event.x, event.y))
     }
 
