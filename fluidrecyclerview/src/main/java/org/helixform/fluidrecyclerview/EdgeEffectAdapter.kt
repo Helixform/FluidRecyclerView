@@ -40,7 +40,10 @@ class EdgeEffectAdapter(private val context: Context) {
 
     private var springBack = FluidSpringBack()
     private var currentDistance = 0f
+
     private var totalPullDistance = 0f
+    private var pullDistanceSign = 0f
+
     private var mode: Int = MODE_IDLE
     var isFinished = true
         private set
@@ -84,20 +87,37 @@ class EdgeEffectAdapter(private val context: Context) {
      * 0 and <code>deltaDistance</code>.
      */
     fun onPullDistance(deltaDistance: Float, forReleasing: Boolean): Float {
-        if (forReleasing) {
+        val releasing = deltaDistance.sign == currentDistance.sign
+        if (releasing != forReleasing) {
+            // The rubber band is being stretched tight.
             return 0f
         }
 
         val dpDelta = deltaDistance.dp()
         if (mode != MODE_PULLING) {
-            totalPullDistance = 0f
+            // Calculate the distance pulled by reversing the current position.
+            totalPullDistance =
+                FluidRubberBand.distance(
+                    abs(currentDistance.dp()),
+                    viewportRange
+                ) * -currentDistance.sign
+            pullDistanceSign = dpDelta.sign
         }
         totalPullDistance += dpDelta
-        val offset = FluidRubberBand.offset(abs(totalPullDistance), viewportRange)
-        currentDistance = (-offset * totalPullDistance.sign).px()
+        var distance = totalPullDistance
+        if (distance.sign != pullDistanceSign) {
+            // The rubber band is being pulled in the opposite direction.
+            distance = 0f
+        }
+        val offset = FluidRubberBand.offset(abs(distance), viewportRange)
+        currentDistance = (-offset * distance.sign).px()
         mode = MODE_PULLING
         isFinished = false
-        return 0f
+        return if (releasing) {
+            deltaDistance
+        } else {
+            0f
+        }
     }
 
     fun onRelease() {
