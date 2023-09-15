@@ -44,7 +44,7 @@ class FluidVelocityTracker(private val context: Context) : VelocityTracker {
             calculateRecurrenceRelationVelocity(transformedTimes.toTypedArray(), xValues)
         var yVelocity =
             calculateRecurrenceRelationVelocity(transformedTimes.toTypedArray(), yValues)
-        if (xVelocity.pow(2) + yVelocity.pow(2) < 0.0625 * displayMetrics.density.pow(2)) {
+        if (xVelocity.pow(2) + yVelocity.pow(2) < 0.0576 * displayMetrics.density.pow(2)) {
             xVelocity = 0f
             yVelocity = 0f
         }

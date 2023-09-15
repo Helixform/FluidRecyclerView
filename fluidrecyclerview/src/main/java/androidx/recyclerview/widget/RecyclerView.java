@@ -2776,7 +2776,7 @@ public class RecyclerView extends ViewGroup implements ScrollingView,
      */
     private boolean shouldAbsorb(@NonNull EdgeEffectAdapter edgeEffect, int velocity) {
         // TODO: implement this.
-        return false;
+        return true;
     }
 
     /**
