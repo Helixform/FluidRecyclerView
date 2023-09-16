@@ -17,6 +17,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("maven-publish")
 }
 
 android {
@@ -47,6 +48,12 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
 }
 
 repositories {
@@ -65,5 +72,18 @@ dependencies {
 
     constraints {
         implementation("androidx.viewpager2:viewpager2:1.0.0")
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            register<MavenPublication>("release") {
+                from(components.getByName("release"))
+                groupId = "com.github.Helixform"
+                artifactId = "FluidRecyclerView"
+                version = "1.3.1"
+            }
+        }
     }
 }
