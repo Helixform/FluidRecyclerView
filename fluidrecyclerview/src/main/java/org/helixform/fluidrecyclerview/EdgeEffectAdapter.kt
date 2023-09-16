@@ -101,7 +101,11 @@ class EdgeEffectAdapter(private val context: Context) {
                     abs(currentDistance.dp()),
                     viewportRange
                 ) * -currentDistance.sign
-            pullDistanceSign = dpDelta.sign
+            pullDistanceSign = if (totalPullDistance == 0f) {
+                dpDelta.sign
+            } else {
+                totalPullDistance.sign
+            }
         }
         totalPullDistance += dpDelta
         var distance = totalPullDistance
