@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (C) 2015 The Android Open Source Project
+     Copyright (C) 2023 Helixform
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -21,7 +22,7 @@
     <declare-styleable name="RecyclerView">
         <!-- Class name of the Layout Manager to be used.
         <p/>
-        The class must ext androidx.recyclerview.widget.RecyclerViewView$LayoutManager
+        The class must ext androidx.fluidrecyclerview.widget.RecyclerViewView$LayoutManager
         and have either a default constructor or constructor with the signature
         (android.content.Context, android.util.AttributeSet, int, int).
          <p/>

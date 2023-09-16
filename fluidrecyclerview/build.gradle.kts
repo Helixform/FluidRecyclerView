@@ -20,7 +20,7 @@ plugins {
 }
 
 android {
-    namespace = "androidx.recyclerview"
+    namespace = "androidx.fluidrecyclerview"
     compileSdk = 32
 
     defaultConfig {

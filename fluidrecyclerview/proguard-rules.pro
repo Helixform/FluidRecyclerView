@@ -14,12 +14,12 @@
 
 # When layoutManager xml attribute is used, RecyclerView inflates
 #LayoutManagers' constructors using reflection.
--keep public class * extends androidx.recyclerview.widget.RecyclerView$LayoutManager {
+-keep public class * extends androidx.fluidrecyclerview.widget.RecyclerView$LayoutManager {
     public <init>(android.content.Context, android.util.AttributeSet, int, int);
     public <init>();
 }
 
--keepclassmembers class androidx.recyclerview.widget.RecyclerView {
+-keepclassmembers class androidx.fluidrecyclerview.widget.RecyclerView {
     public void suppressLayout(boolean);
     public boolean isLayoutSuppressed();
 }
