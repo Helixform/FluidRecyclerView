@@ -31,9 +31,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.RecyclerView.Adapter
-import androidx.recyclerview.widget.RecyclerView.ViewHolder
+import androidx.fluidrecyclerview.widget.RecyclerView
+import androidx.fluidrecyclerview.widget.RecyclerView.Adapter
+import androidx.fluidrecyclerview.widget.RecyclerView.ViewHolder
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
