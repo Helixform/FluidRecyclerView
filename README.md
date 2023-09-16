@@ -11,6 +11,8 @@ The major differences from the original version:
 - Added the rubber band effect.
 - Optimized the velocity calculation algorithm.
 
+This library takes code from [fluid-scroll](https://github.com/ktiays/fluid-scroll), which ports many important algorithms like spring simulation, velocity calculation, etc. Check it out if you are looking for implementations for other platforms.
+
 📽️ Let's see it in action:
 
 https://github.com/ktiays/fluid-scroll/assets/44366293/0d4c988f-8258-4966-8dda-92121b8db3de
@@ -51,6 +53,24 @@ Now replace all the packages of `RecyclerView` and related classes with `android
 ```
 
 That's it!
+
+## FAQ
+
+### Which version of RecyclerView is this library based on?
+
+The library is forked from `androidx.recyclerview:recyclerview:1.3.1` ([commit](https://android.googlesource.com/platform/frameworks/support/+/68f4660cd40b87c9383c5c7d86ae26ebccbf93e8)), and currently have no plans to synchronize with higher versions.
+
+### Is there any public API changes?
+
+No. But note that some internal methods & classes have been changed or removed. If you are using some private APIs via reflection, your app may behave abnormally.
+
+### Why is it still using `androidx` package name?
+
+The library uses some package-visible APIs from other AndroidX components. To reduce unnecessary modifications and impacts of using this library, we just renamed the child packages.
+
+### Can I change the scrolling behavior dynamically?
+
+It's not supported currently. Since this library can coexist with the original `RecyclerView`, you can implement that feature at app level.
 
 ## License
 
